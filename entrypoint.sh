@@ -9,9 +9,11 @@ if [ -d "/mnt/vault-source" ]; then
     cd "/vault/${VAULT_BASENAME}"
 
     # Initialize git repo and commit all files
+    git config --global init.defaultBranch main
+    git config --global user.email "pi-vault@container"
+    git config --global user.name "PI Vault"
+    git config --global --add safe.directory /vault/adishy-core
     git init
-    git config user.email "pi-vault@container"
-    git config user.name "PI Vault"
     git add -A
     git commit -m "Initial commit: vault snapshot at $(date -Iseconds)" --allow-empty
     echo "[entrypoint] Git repo initialized with $(git log --oneline | wc -l) commit(s), $(git ls-files | wc -l) files tracked."
