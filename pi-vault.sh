@@ -88,6 +88,7 @@ start_session() {
         -e "AWS_BEARER_TOKEN_BEDROCK=${bearer_token}" \
         -e "VAULT_BASENAME=${vault_basename}" \
         -e "PI_CODING_AGENT_SESSION_DIR=/vault/.pi-sessions" \
+        -e "PI_VAULT_SESSION_ID=${session_id}" \
         -v "${vault_path}:/mnt/vault-source:ro" \
         -v "${session_tmp}:/tmp/session" \
         "${IMAGE_NAME}" \

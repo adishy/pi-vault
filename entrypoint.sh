@@ -26,6 +26,17 @@ fi
 export PI_CODING_AGENT_SESSION_DIR="/vault/.pi-sessions"
 mkdir -p "$PI_CODING_AGENT_SESSION_DIR"
 
+# Generate session-specific theme for visual distinction
+PI_CONFIG_DIR="${HOME}/.pi/agent"
+mkdir -p "${PI_CONFIG_DIR}/themes"
+if [ -n "${PI_VAULT_SESSION_ID}" ]; then
+    /generate-theme.sh "${PI_VAULT_SESSION_ID}" "${PI_CONFIG_DIR}/themes/pi-vault-session.json"
+    # Write settings to use the generated theme
+    mkdir -p "${PI_CONFIG_DIR}"
+    echo '{"theme":"pi-vault-'"${PI_VAULT_SESSION_ID}"'"}' > "${PI_CONFIG_DIR}/settings.json"
+    echo "[entrypoint] Theme generated for session ${PI_VAULT_SESSION_ID} (hue-shifted)"
+fi
+
 echo "[entrypoint] Vault ready at /vault/${VAULT_BASENAME}"
 echo "[entrypoint] Container running. Use 'docker exec -it <container> pi' to start PI."
 
