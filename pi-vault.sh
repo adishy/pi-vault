@@ -24,13 +24,13 @@ Usage:
   $(basename "$0") --list
       List active pi-vault sessions.
 
-  $(basename "$0") --exec <session_id>
+  $(basename "$0") --start <session_id>
       Exec into the container and launch PI TUI.
 
 Examples:
   ./pi-vault.sh ~/my-vault "tok_abc123"
   ./pi-vault.sh ~/my-vault "tok_abc123" /tmp
-  ./pi-vault.sh --exec a1b2c3d4
+  ./pi-vault.sh --start a1b2c3d4
   ./pi-vault.sh --writeback a1b2c3d4
   ./pi-vault.sh --stop a1b2c3d4
   ./pi-vault.sh --rebuild ~/my-vault "tok_abc123"
@@ -120,7 +120,7 @@ start_session() {
     echo "   docker exec -it ${container_name} bash -c 'cd /vault/${vault_basename} && pi'"
     echo ""
     echo " Or use shorthand:"
-    echo "   ./pi-vault.sh --exec ${session_id}"
+    echo "   ./pi-vault.sh --start ${session_id}"
     echo ""
     echo " When done:"
     echo "   ./pi-vault.sh --writeback ${session_id}"
@@ -245,7 +245,7 @@ case "${1}" in
     --list)
         list_sessions
         ;;
-    --exec)
+    --start)
         [ $# -lt 2 ] && usage
         exec_session "$2"
         ;;
