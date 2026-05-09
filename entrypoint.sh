@@ -38,7 +38,30 @@ if [ -n "${PI_VAULT_SESSION_ID}" ]; then
 fi
 
 echo "[entrypoint] Vault ready at /vault/${VAULT_BASENAME}"
-echo "[entrypoint] Container running. Use 'docker exec -it <container> pi' to start PI."
 
-# Keep container alive
+# Configure tmux (session will be started when user attaches)
+mkdir -p ~/.tmux
+cat > ~/.tmux.conf <<'EOF'
+# High scrollback buffer
+set-option -g history-limit 100000
+
+# Resize to current client when attaching
+set-option -g aggressive-resize on
+
+# Disable tmux status bar entirely - gives full screen to TUI
+set-option -g status off
+
+# Ensure alternate screen buffer works properly
+set-option -g alternate-screen on
+
+# Proper terminal support
+set-option -g default-terminal "screen-256color"
+
+# Help with terminal size detection
+set-option -g focus-events on
+EOF
+
+echo "[entrypoint] Waiting for user to attach..."
+
+# Keep container alive - tmux+PI started when user attaches (gets correct terminal size)
 exec tail -f /dev/null

@@ -9,8 +9,12 @@ usage() {
     cat <<EOF
 Usage:
   $(basename "$0") <vault_path> <bearer_token> [tmp_dir]
-      Start a new PI vault session (container runs in background).
+      Start a new PI vault session and attach to tmux.
       tmp_dir defaults to /tmp.
+      Detach with Ctrl-b d, reattach with --start.
+
+  $(basename "$0") --start <session_id>
+      Reattach to an existing session's tmux (creates new PI if exited).
 
   $(basename "$0") --stop <session_id>
       Stop and remove a session container.
@@ -24,16 +28,12 @@ Usage:
   $(basename "$0") --list
       List active pi-vault sessions.
 
-  $(basename "$0") --start <session_id>
-      Exec into the container and launch PI TUI.
-
 Examples:
-  ./pi-vault.sh ~/my-vault "tok_abc123"
-  ./pi-vault.sh ~/my-vault "tok_abc123" /tmp
-  ./pi-vault.sh --start a1b2c3d4
-  ./pi-vault.sh --writeback a1b2c3d4
-  ./pi-vault.sh --stop a1b2c3d4
-  ./pi-vault.sh --rebuild ~/my-vault "tok_abc123"
+  ./pi-vault.sh ~/my-vault "tok_abc123"           # Start + attach
+  # ... work in PI, then Ctrl-b d to detach ...
+  ./pi-vault.sh --start a1b2c3d4                  # Reattach
+  ./pi-vault.sh --writeback a1b2c3d4              # Save changes
+  ./pi-vault.sh --stop a1b2c3d4                   # Cleanup
 EOF
     exit 1
 }
@@ -118,16 +118,16 @@ start_session() {
     echo " Tmp (host):  ${session_tmp}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo " To launch PI:"
-    echo "   docker exec -it ${container_name} bash -c 'cd /vault/${vault_basename} && pi'"
-    echo ""
-    echo " Or use shorthand:"
-    echo "   ./pi-vault.sh --start ${session_id}"
+    echo " Detach from tmux:  Ctrl-b d"
+    echo " Reattach later:    ./pi-vault.sh --start ${session_id}"
     echo ""
     echo " When done:"
     echo "   ./pi-vault.sh --writeback ${session_id}"
     echo "   ./pi-vault.sh --stop ${session_id}"
     echo ""
+
+    # Auto-attach to tmux session
+    attach_tmux "${session_id}"
 }
 
 stop_session() {
@@ -209,7 +209,7 @@ list_sessions() {
     echo ""
 }
 
-exec_session() {
+attach_tmux() {
     local session_id="$1"
     local container_name="${CONTAINER_PREFIX}-${session_id}"
 
@@ -222,10 +222,26 @@ exec_session() {
     vault_source="$(docker inspect --format '{{index .Config.Labels "pi-vault-source"}}' "${container_name}")"
     local vault_basename="$(basename "$vault_source")"
 
-    echo "[pi-vault] Launching PI in session ${session_id}..."
-    docker exec -it \
-        -e "PI_CODING_AGENT_SESSION_DIR=/vault/.pi-sessions" \
-        "${container_name}" bash -c "cd /vault/${vault_basename} && pi --append-system-prompt 'Pi-vault session ID: ${session_id}. Use /name to tag this session if not already named.'"
+    echo "[pi-vault] Attaching to tmux session in ${session_id}..."
+    
+    # Attach to existing tmux session, or create a new one if PI exited
+    # Use -d to detach other clients so tmux resizes to current terminal
+    docker exec -it "${container_name}" bash -c '
+        TMUX_SESSION="pi"
+        PI_CMD="pi --append-system-prompt '"'"'Pi-vault session ID: '"${session_id}"'. Use /name to tag this session if not already named.'"'"'"
+        VAULT_DIR="/vault/'"${vault_basename}"'"
+        
+        if tmux has-session -t "$TMUX_SESSION" 2>/dev/null; then
+            tmux attach-session -d -t "$TMUX_SESSION"
+        else
+            cd "$VAULT_DIR" && tmux new-session -s "$TMUX_SESSION" "$PI_CMD"
+        fi
+    '
+}
+
+exec_session() {
+    local session_id="$1"
+    attach_tmux "$session_id"
 }
 
 # ─── Main ────────────────────────────────────────────────────────────────────

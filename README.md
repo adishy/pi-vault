@@ -20,16 +20,16 @@ You want an AI coding agent to read, edit, and create files in your vault — bu
 ## Quick Start
 
 ```bash
-# 1. Start a session
+# 1. Start a session (auto-attaches to PI in tmux)
 ./pi-vault.sh ~/my-obsidian-vault "your-bearer-token"
 
-# 2. Launch PI TUI (session ID printed at start)
-./pi-vault.sh --exec a1b2c3d4
+# 2. Work with PI... detach with Ctrl-b d when you need to step away
 
-# 3. Work with PI... when done, write back
+# 3. Reattach later
+./pi-vault.sh --start a1b2c3d4
+
+# 4. When done, write back and inspect changes
 ./pi-vault.sh --writeback a1b2c3d4
-
-# 4. Inspect changes on host
 cd /tmp/a1b2c3d4/my-obsidian-vault
 git status
 git diff
@@ -44,7 +44,9 @@ git diff
 pi-vault.sh <vault_path> <bearer_token> [tmp_dir]
 ```
 
-Start a new session. Builds the Docker image if it doesn't exist, generates a random session ID, copies the vault into the container, creates a git repo, and runs in the background.
+Start a new session. Builds the Docker image if it doesn't exist, generates a random session ID, copies the vault into the container, creates a git repo, starts PI in a tmux session, and attaches.
+
+Use **Ctrl-b d** to detach from tmux while keeping PI running.
 
 | Argument | Description | Default |
 |----------|-------------|---------|
@@ -55,10 +57,10 @@ Start a new session. Builds the Docker image if it doesn't exist, generates a ra
 ---
 
 ```
-pi-vault.sh --exec <session_id>
+pi-vault.sh --start <session_id>
 ```
 
-Exec into a running session container and launch the PI TUI. Working directory is set to `/vault/<vault-basename>`.
+Reattach to an existing session's tmux. If PI has exited, starts a fresh PI instance in a new tmux session.
 
 ---
 
@@ -131,6 +133,7 @@ Print usage information.
 
 - The source vault is **never modified** — it's mounted read-only.
 - Multiple sessions can run concurrently, each with a unique session ID.
-- The container stays alive via `tail -f /dev/null` until explicitly stopped.
+- The container stays alive via `tail -f /dev/null` even when detached from tmux.
+- PI runs inside a tmux session named `pi` — detach with Ctrl-b d, reattach with `--start`.
 - PI picks up the Bedrock token from the `AWS_BEARER_TOKEN_BEDROCK` environment variable.
 - The git repo inside the container has a single initial commit with all vault files — any subsequent changes by PI show up as uncommitted modifications in `git diff`.
