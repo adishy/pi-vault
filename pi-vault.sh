@@ -87,6 +87,7 @@ start_session() {
         --label "pi-vault-tmp=${session_tmp}" \
         -e "AWS_BEARER_TOKEN_BEDROCK=${bearer_token}" \
         -e "VAULT_BASENAME=${vault_basename}" \
+        -e "PI_CODING_AGENT_SESSION_DIR=/vault/.pi-sessions" \
         -v "${vault_path}:/mnt/vault-source:ro" \
         -v "${session_tmp}:/tmp/session" \
         "${IMAGE_NAME}" \
@@ -166,13 +167,22 @@ writeback_session() {
     docker exec "${container_name}" bash -c \
         "cp -a /vault/${vault_basename} /tmp/session/${vault_basename}"
 
+    # Copy pi session logs
+    docker exec "${container_name}" bash -c \
+        "if [ -d /vault/.pi-sessions ]; then cp -a /vault/.pi-sessions /tmp/session/.pi-sessions; fi"
+
     echo "[pi-vault] Writeback complete."
     echo ""
     echo " Vault written to: ${session_tmp}/${vault_basename}"
+    echo " Pi sessions:      ${session_tmp}/.pi-sessions"
+    echo ""
     echo " To inspect changes:"
     echo "   cd ${session_tmp}/${vault_basename}"
     echo "   git status"
     echo "   git diff"
+    echo ""
+    echo " To review pi session logs:"
+    echo "   ls ${session_tmp}/.pi-sessions/"
     echo ""
 }
 
@@ -212,7 +222,9 @@ exec_session() {
     local vault_basename="$(basename "$vault_source")"
 
     echo "[pi-vault] Launching PI in session ${session_id}..."
-    docker exec -it "${container_name}" bash -c "cd /vault/${vault_basename} && pi"
+    docker exec -it \
+        -e "PI_CODING_AGENT_SESSION_DIR=/vault/.pi-sessions" \
+        "${container_name}" bash -c "cd /vault/${vault_basename} && pi --append-system-prompt 'Pi-vault session ID: ${session_id}. Use /name to tag this session if not already named.'"
 }
 
 # ─── Main ────────────────────────────────────────────────────────────────────

@@ -22,6 +22,10 @@ else
     exit 1
 fi
 
+# Set up pi session directory
+export PI_CODING_AGENT_SESSION_DIR="/vault/.pi-sessions"
+mkdir -p "$PI_CODING_AGENT_SESSION_DIR"
+
 echo "[entrypoint] Vault ready at /vault/${VAULT_BASENAME}"
 echo "[entrypoint] Container running. Use 'docker exec -it <container> pi' to start PI."
 
